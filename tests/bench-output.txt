@@ -1,0 +1,18 @@
+LIBXML 21504
+<svg> id=logo
+  <title>
+    "Café & Amiga"
+  <rect> id=r1
+  <g>
+    <circle> id=c
+SERIALISED 177 bytes
+XML_DONE
+
+EXPAT expat_2.8.2
+<fontconfig>
+  <dir>
+  <alias binding="same">
+    <family>
+    <prefer>
+      <family>
+EXPAT_DONE elements=6

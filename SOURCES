@@ -1,0 +1,11 @@
+# Upstream sources this port builds (place the files in tarballs/)
+
+libxml2 2.15.4
+  file:   libxml2-2.15.4.tar.xz
+  from:   https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.4.tar.xz
+  sha256: 98087fd181d9070724f3fbc65c7377db03038eb92bd882374daff44940138821
+
+Expat 2.8.2
+  file:   expat-2.8.2.tar.bz2
+  from:   https://github.com/libexpat/libexpat/releases (expat-2.8.2.tar.bz2)
+  sha256: 69e7f52417d85b1c2b7fe855e176eec55d0b2d7d92d691372d833a1c7df7923b
