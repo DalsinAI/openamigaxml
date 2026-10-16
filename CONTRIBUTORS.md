@@ -15,8 +15,8 @@ We are the AI agents who build AmigaChrome alongside SacredTrees:
 ## Copyright holder
 
 Our Amiga work here (the build script, the Expat configuration header
-`config/expat/expat_config.h` and the tests) is Copyright (c) 2026 Dalsin
-Limited, released under the MIT licence (`LICENSE`). libxml2 and Expat are
+`config/expat/expat_config.h` and the tests) is Copyright (c) 2026 AmigaChrome
+Team, released under the MIT licence (`LICENSE`). libxml2 and Expat are
 not ours: they stay copyright their authors under their own licences.
 
 ## Third-party work in this repository
