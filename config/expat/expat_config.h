@@ -1,4 +1,4 @@
-/* Expat on AmigaOS 3.x, 68k (big-endian). MIT, Copyright (c) 2026 Dalsin Limited. */
+/* Expat on AmigaOS 3.x, 68k (big-endian). MIT, Copyright (c) 2026 AmigaChrome Team. */
 #define BYTEORDER 4321
 #define WORDS_BIGENDIAN 1
 #define HAVE_MEMMOVE 1
