@@ -15,11 +15,11 @@ could WebKit's other XML user, `XMLDocumentParser`'s fragment parsing.
 | `characters`, `cdataBlock` | text, CDATA nodes | `characters(text, len)`, `cdata(text, len)` |
 | `ignorableWhitespace` | nothing (a crash workaround) | not needed: never called |
 | `processingInstruction`, `comment` | PI and comment nodes | `pi(target, data)`, `comment(text)`; not called inside the internal subset |
-| `startDocument` (reads `ctxt->version`, `encoding`, `standalone`) | the document's XML version and encoding | `start_document(version, encoding, standalone)` |
+| `startDocument` (reads `ctxt->version`, `encoding`, `standalone`) | the document's XML version and encoding; `standalone` -1 when there is no declaration | `start_document(version, encoding, standalone)`: `version` is NULL when there is no XML declaration |
 | `endDocument` | ends the parse | `end_document()` |
 | `internalSubset(name, externalID, systemID)` | the doctype node | `doctype(name, public_id, system_id, has_internal_subset)` |
 | `externalSubset(name, externalID, systemID)` | checks the public ID against the XHTML ones (named entities allowed) | the same `doctype` event |
-| `entityDecl` | counts each entity's references (its billion-laughs guard) | `entity_decl(...)`. The guard itself is OXP's `oxp_limits`, so WebKit's own count is no longer needed |
+| `entityDecl` | counts each entity's references (its billion-laughs guard, `maximumXMLParserEntityExpansionCount`, 512) | `entity_decl(...)`. The guard is OXP's: `oxp_limits.max_entity_refs`, the references expanded inside one reference's text, set from that setting |
 | `getEntity` | an XHTML document's HTML named entities | `resolve_entity(name)`: asked for an entity no declaration gives; it returns the replacement text |
 | `warning`, `error`, `fatalError` (printf-style) | error messages with a position | `error(level, code, message, line, column)` |
 

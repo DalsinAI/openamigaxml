@@ -492,6 +492,14 @@ static int wfc_declared(oxp_parser *p)
     return !p->seen_doctype || (!p->doc_has_external && !p->doc_has_pe_ref) || p->standalone == 1;
 }
 
+/* one more reference expanded; nested says it is inside another one's text */
+static int count_ref(oxp_parser *p, int nested)
+{
+    if (!nested) { p->nested_refs = 0; return R_OK; }
+    if (++p->nested_refs > p->lim.max_entity_refs) return fail(p, OXP_E_ENTITY_LIMIT, "Entity reference expansion limit reached");
+    return R_OK;
+}
+
 /* the bytes entities may still produce */
 static int budget(oxp_parser *p, size_t n)
 {
@@ -585,6 +593,7 @@ static int attval(oxp_parser *p, sbuf *out, const char *s, size_t n, int depth)
                             continue;
                         }
                         if ((ulong)depth >= p->lim.max_entity_depth) return fail(p, OXP_E_ENTITY_LIMIT, "entities nest too deep");
+                        if (count_ref(p, depth > 0)) return R_ERR;
                         if (budget(p, strlen(text))) return R_ERR;
                         if (attval(p, out, text, strlen(text), depth + 1)) return R_ERR;
                         i = e;
@@ -595,6 +604,7 @@ static int attval(oxp_parser *p, sbuf *out, const char *s, size_t n, int depth)
                                      "an attribute value refers to an external entity:", en->name);
                     if (en->open) return failn(p, OXP_E_ENTITY_RECURSION, "an entity refers to itself:", en->name);
                     if ((ulong)depth >= p->lim.max_entity_depth) return fail(p, OXP_E_ENTITY_LIMIT, "entities nest too deep");
+                    if (count_ref(p, depth > 0)) return R_ERR;
                     if (budget(p, en->value_len)) return R_ERR;
                     en->open = 1;
                     int r = attval(p, out, en->value, en->value_len, depth + 1);
@@ -995,6 +1005,7 @@ static int content_entity(oxp_parser *p, input *in, const char *nm, size_t nl)
     if (en->open) return failn(p, OXP_E_ENTITY_RECURSION, "an entity refers to itself:", en->name);
     if ((ulong)p->nin >= p->lim.max_entity_depth || p->nin >= (int)(sizeof p->stackin / sizeof p->stackin[0]))
         return fail(p, OXP_E_ENTITY_LIMIT, "entities nest too deep");
+    if (count_ref(p, p->nin > 0)) return R_ERR;
     if (budget(p, en->value_len)) return R_ERR;
     input *e = &p->stackin[p->nin++];
     e->s = en->value; e->len = en->value_len; e->pos = 0; e->final = 1; e->ent = en; e->dtd = 0;
@@ -1187,7 +1198,7 @@ static int xml_decl(oxp_parser *p, input *in)
     if (!at(in, "<?xml") || AV(in) < 6 || !is_space((u8)S(in)[in->pos + 5])) {
         if (!release_decl(p, NULL)) return R_ERR;
         p->state = ST_PROLOG;
-        if (p->h.start_document) EVENT(p->h.start_document(p->ud, "1.0", NULL, -1));
+        if (p->h.start_document) EVENT(p->h.start_document(p->ud, NULL, NULL, -1));
         return R_OK;
     }
     /* the declaration is short: wait for all of it */
@@ -1778,7 +1789,7 @@ static int run(oxp_parser *p)
 
 /* ---------------------------------------------------------------- the interface */
 
-static const oxp_limits default_limits = { 10000, 50000, 10ul * 1024 * 1024, 16, 1024ul * 1024, 10, 10000 };
+static const oxp_limits default_limits = { 10000, 50000, 10ul * 1024 * 1024, 16, 1024ul * 1024, 10, 10000, (unsigned long)-1 };
 
 oxp_parser *oxp_new(const oxp_handler *h, void *ud, const oxp_alloc *alloc)
 {
@@ -1835,6 +1846,7 @@ void oxp_set_limits(oxp_parser *p, const oxp_limits *l)
 {
 #define L(f) if (l->f) p->lim.f = l->f
     L(max_depth); L(max_name); L(max_text); L(max_entity_depth); L(max_expansion_floor); L(max_expansion_ratio); L(max_attrs);
+    L(max_entity_refs);
 #undef L
 }
 

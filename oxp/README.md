@@ -32,7 +32,9 @@ backend of its own (`WEBKIT.md`).
   - internal general and parameter entities from the internal subset;
   - attribute defaults and types from `ATTLIST`.
   - Expansion is limited (`oxp_limits`): entities nested 16 deep at most, and
-    entity output no more than 10 times the input once past 1 MB. A
+    entity output no more than 10 times the input once past 1 MB. A caller
+    can also limit the references expanded inside one reference's text
+    (`max_entity_refs`), as a browser does. A
     billion-laughs or quadratic-blowup document stops with
     `OXP_E_ENTITY_LIMIT`.
 - **The rest of XML 1.0:** CDATA sections, comments, processing instructions,

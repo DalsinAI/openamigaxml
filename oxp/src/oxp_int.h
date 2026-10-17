@@ -136,6 +136,7 @@ struct oxp_parser {
 
     ulong hint_unit, hint_scan; /* a search that ran out of input: where its unit began and how far it got (absolute) */
     ulong expanded;             /* bytes produced by entity expansion */
+    ulong nested_refs;          /* references expanded inside the current top-level one */
     int edepth;
 };
 

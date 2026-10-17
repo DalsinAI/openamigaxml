@@ -21,4 +21,7 @@ $CC $CFLAGS -I"$HERE/include" -o "$OUT/domtest" "$HERE/tests/domtest.c" "$OUT/li
 if [ "${REF:-0}" = 1 ]; then
   $CC -O2 -I/usr/include/libxml2 -o "$OUT/libxml2dump" "$HERE/tests/ref/libxml2dump.c" -lxml2
 fi
+# shellcheck disable=SC2086
+$CC $CFLAGS -I"$HERE/include" -o "$OUT/apitest" "$HERE/tests/apitest.c" "$OUT/liboxp.a"
+"$OUT/apitest"
 sh "$HERE/tests/run-cases.sh" "$OUT/oxpdump"

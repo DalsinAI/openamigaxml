@@ -85,8 +85,9 @@ typedef enum {
 } oxp_code;
 
 typedef struct oxp_handler {
-    /* version is "1.0" (or the declaration's), encoding is the declaration's
-     * encoding name or NULL, standalone is 1 (yes), 0 (no) or -1 (not said). */
+    /* version is the declaration's, or NULL when the document has no XML
+     * declaration; encoding is the declaration's encoding name or NULL;
+     * standalone is 1 (yes), 0 (no) or -1 (not said). */
     void (*start_document)(void *ud, const char *version, const char *encoding, int standalone);
     void (*end_document)(void *ud);
     /* <!DOCTYPE name PUBLIC "pub" "sys" [ ... ]>: at the start of the declaration. */
@@ -122,6 +123,9 @@ typedef struct oxp_limits {
     unsigned long max_expansion_floor;  /* bytes entities may produce before the ratio applies [1 MB] */
     unsigned long max_expansion_ratio;  /* entity output may be this many times the input [10] */
     unsigned long max_attrs;            /* attributes on one element [10000] */
+    unsigned long max_entity_refs;      /* entity references expanded inside the text of one
+                                           reference in the document, however deep (a browser's
+                                           "transitive references" limit) [no limit] */
 } oxp_limits;
 
 /* ---- options ---- */
