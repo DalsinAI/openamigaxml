@@ -36,8 +36,8 @@ tarballs from [SOURCES](SOURCES) in `tarballs/`. Then:
 ```
 
 The libraries and headers land in `out/` (set `PREFIX` to change that). The
-script prints which other settings it needs, if any. Target: 68020 or better
-with an FPU (`-m68020 -m68881`), libnix (`-mcrt=nix20`).
+script prints which other settings it needs, if any. Target: the 68040
+with its FPU (`-m68040 -m68881`), libnix (`-mcrt=nix20`).
 
 Link with: `-lxml2 -lexpat -lpthread -lm`
 
