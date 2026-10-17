@@ -1,0 +1,8 @@
+DOCTYPE a - -
+S a
+T [inner] and 
+S b
+T inner
+E b
+E a
+END

@@ -1,0 +1,1 @@
+<!DOCTYPE a [<!ENTITY i "inner"><!ENTITY o "[&i;] and <b>&i;</b>">]><a>&o;</a>

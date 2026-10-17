@@ -1,0 +1,3 @@
+DOCTYPE a - a.dtd
+S a
+ERROR 2 undeclared entity 1:75 an undeclared entity: 'nbsp'

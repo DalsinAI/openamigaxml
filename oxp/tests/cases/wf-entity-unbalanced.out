@@ -1,0 +1,4 @@
+DOCTYPE a - -
+S a
+S b
+ERROR 2 syntax 1:39 an entity leaves an element open: 'e'

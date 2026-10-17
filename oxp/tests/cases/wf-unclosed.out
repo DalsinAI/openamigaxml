@@ -1,0 +1,4 @@
+S a
+S b
+T text
+ERROR 2 unclosed 1:11 the document ends inside an element: 'b'

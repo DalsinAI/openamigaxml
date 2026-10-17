@@ -1,0 +1,1 @@
+<!DOCTYPE a [<!ELEMENT a (b*)><!ATTLIST a x CDATA "dx" y NMTOKENS "  t1   t2 " z CDATA #IMPLIED><!ATTLIST a x CDATA "second">]><a y="  p   q  "/>
