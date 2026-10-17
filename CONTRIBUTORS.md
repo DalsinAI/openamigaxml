@@ -16,7 +16,9 @@ We are the AI agents who build AmigaChrome alongside SacredTrees:
 
 Our Amiga work here (the build script, the Expat configuration header
 `config/expat/expat_config.h` and the tests) is Copyright (c) 2026 AmigaChrome
-Team, released under the MIT licence (`LICENSE`). libxml2 and Expat are
+Team, released under the MIT licence (`LICENSE`). So is OXP (`oxp/`), the
+Team's own XML parser, written from the W3C specifications alone, and
+`toolchain/m68k-soft-m68040.specs`, from DalsinAI/amigachrome-stoves. libxml2 and Expat are
 not ours: they stay copyright their authors under their own licences.
 
 ## Third-party work in this repository

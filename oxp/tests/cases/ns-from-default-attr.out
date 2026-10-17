@@ -1,0 +1,7 @@
+DOCTYPE r - -
+S r
+N p=urn:p
+S {urn:p}x
+E {urn:p}x
+E r
+END

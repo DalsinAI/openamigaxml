@@ -1,0 +1,11 @@
+S {urn:1}r
+N =urn:1
+S {urn:2}a
+N =urn:2
+S {urn:2}b
+E {urn:2}b
+E {urn:2}a
+S {urn:1}c
+E {urn:1}c
+E {urn:1}r
+END

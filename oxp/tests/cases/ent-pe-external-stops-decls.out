@@ -1,0 +1,6 @@
+DOCTYPE a - -
+SKIP %x
+S a
+SKIP g
+E a
+END

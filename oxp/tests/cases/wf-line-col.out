@@ -1,0 +1,6 @@
+S a
+T \n  
+S b
+T \n    
+S c
+ERROR 2 tag mismatch 3:12 the end tag does not match the start tag 'c'

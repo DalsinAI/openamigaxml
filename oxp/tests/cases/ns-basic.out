@@ -1,0 +1,12 @@
+S {urn:d}r
+N =urn:d
+N p=urn:p
+S {urn:p}x
+A {urn:p}a=1
+A b=2
+S y
+N =
+E y
+E {urn:p}x
+E {urn:d}r
+END

@@ -1,0 +1,3 @@
+S a
+T fish 
+ERROR 2 syntax 1:10 a name was expected

@@ -10,6 +10,15 @@ the WebKit browser for AmigaOS 3.2.
 This repository holds the Amiga build, not libxml2, Expat itself: a build script,
 configuration headers, a smoke test and the upstream licences.
 
+## OXP: the Team's own parser
+
+[`oxp/`](oxp/README.md) is a clean-room XML 1.0 parser written by the Team
+from the XML and Namespaces specifications, to take libxml2's place in the
+browser stack. It has a streaming core and a small tree. Its build and tests
+are separate from the libxml2 and Expat build below: see
+[oxp/README.md](oxp/README.md), and [oxp/WEBKIT.md](oxp/WEBKIT.md) for what a
+WebKit backend on it needs.
+
 ## Upstream
 
 | Library | Version | Licence | Home |

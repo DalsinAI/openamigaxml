@@ -1,0 +1,5 @@
+DOCTYPE a - a.dtd
+S a
+SKIP nbsp
+E a
+END
