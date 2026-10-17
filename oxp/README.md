@@ -9,9 +9,9 @@ and OpenMail.
 
 MIT licensed and free. Copyright (c) 2026 AmigaChrome Team.
 
-**Status: 0.1, new.** It reads every case in `tests/cases` and, on the
-4,780 readable files tried so far, gives the same events as libxml2 for 4,771
-(below). It has not yet replaced libxml2 in WebKit; that is a WebKit
+**Status: 0.1, new.** It passes every in-scope test of the W3C XML
+Conformance Test Suite and every case in `tests/cases`. On 4,780 real files
+it gives the same events as libxml2 for 4,771 (below). It has not yet replaced libxml2 in WebKit; that is a WebKit
 backend of its own (`WEBKIT.md`).
 
 ## What it does
@@ -97,7 +97,7 @@ oxp_dom_free(d);
 
 ## Tests
 
-- **`tests/cases`:** 64 cases of the Team's own, each with the events it must
+- **`tests/cases`:** 70 cases of the Team's own, each with the events it must
   give (`.out`).
   - Covered: well-formedness errors with their line and column; namespaces;
     entity limits, billion laughs, recursion, external and unparsed
@@ -124,12 +124,16 @@ oxp_dom_free(d);
 - **The tree:** every one of the 4,771 files read, written back with
   `oxp_dom_write` and read again, gives the same events (the DOCTYPE aside,
   which the writer leaves out). `tests/domtest.c` does it for one file.
-- **The W3C XML conformance suite:** not run yet. It is not on the
-  development machine, and fetching it waits for approval.
+- **The W3C XML Conformance Test Suite** (release 20130923, test data
+  only, never in this repository: `tests/w3c/README.md`). Of the XML 1.0
+  fifth-edition and Namespaces 1.0 tests in scope, all 1,915 pass, and 262
+  of them also match the suite's canonical output. 59 not-well-formed tests
+  have their error in an external entity, which OXP never reads.
+  `tests/w3c/run-w3c.py` gives the counts by section.
 
 Run on AmigaOS 3.2.3 (an AC090 lab, 68040), the 68040 build gives the
-same output as the host for all 64 cases (whole and fed 7 bytes at a time),
-and for 139 of the real SVG and XHTML files.
+same output as the host for all 70 cases, and for 139 of the real SVG and
+XHTML files. For 0.1's 64 cases it also matched when fed 7 bytes at a time.
 
 ## Differences from libxml2 a caller should know
 

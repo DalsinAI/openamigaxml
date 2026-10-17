@@ -223,6 +223,7 @@ static int emit_char(oxp_parser *p, unsigned long c)
 }
 
 static int set_encoding_by_name(oxp_parser *p, const char *name);
+static int ieq(const char *a, const char *b);
 
 /* decode what the raw buffer holds, as far as the encoding allows */
 static int decode(oxp_parser *p, int last)
@@ -318,6 +319,9 @@ static int decode(oxp_parser *p, int last)
 static int release_decl(oxp_parser *p, const char *declared)
 {
     if (!p->hold_decl) {
+        /* a UTF-8 BOM: the declaration must not name another encoding (4.3.3) */
+        if (declared && !p->enc_fixed && p->enc == OXP_ENC_UTF8 && p->bom_bytes == 3 && !ieq(declared, "UTF-8") && !ieq(declared, "UTF8"))
+            return failn(p, OXP_E_ENCODING, "a UTF-8 byte order mark, but the declaration says", declared) == R_OK;
         /* UTF-16 found by its BOM or first bytes: a declaration must agree */
         if (declared && !p->enc_fixed && (p->enc == OXP_ENC_UTF16LE || p->enc == OXP_ENC_UTF16BE)) {
             const char *d = declared;
@@ -378,6 +382,8 @@ static int need(oxp_parser *p, input *in, size_t k)
     return R_MORE;
 }
 #define NEED(k) do { int r_ = need(p, in, (k)); if (r_) { if (r_ == R_MORE) in->pos = start; return r_; } } while (0)
+/* k characters if more may come; at the end of the input, go on with what there is */
+#define WANT(k) do { if (AV(in) < (k) && !in->final) { in->pos = start; return R_MORE; } } while (0)
 #define CHECK(x) do { int r_ = (x); if (r_) { if (r_ == R_MORE) in->pos = start; return r_; } } while (0)
 
 static int at(input *in, const char *lit)
@@ -530,7 +536,8 @@ static size_t ref_end(const char *s, size_t n, size_t i)
     size_t k = i + 1;
     if (k < n && s[k] == '#') {
         k++;
-        while (k < n && s[k] != ';' && k - i < 16) k++;
+        if (k < n && s[k] == 'x') k++;
+        while (k < n && ((s[k] >= '0' && s[k] <= '9') || (s[k] >= 'a' && s[k] <= 'f') || (s[k] >= 'A' && s[k] <= 'F'))) k++;
         return k < n && s[k] == ';' ? k + 1 : 0;
     }
     size_t m;
@@ -1010,7 +1017,11 @@ static int reference(oxp_parser *p, input *in)
     if (in->pos + 1 >= in->len) NEED(2);
     if (S(in)[i] == '#') {
         size_t k = i + 1;
-        while (k < in->len && S(in)[k] != ';' && k - start < 16) k++;
+        if (k < in->len && S(in)[k] == 'x') k++;
+        while (k < in->len && ((S(in)[k] >= '0' && S(in)[k] <= '9') || (S(in)[k] >= 'a' && S(in)[k] <= 'f') || (S(in)[k] >= 'A' && S(in)[k] <= 'F'))) {
+            k++;
+            if (k - start > p->lim.max_name) return fail(p, OXP_E_LIMIT, "a character reference is too long");
+        }
         if (k >= in->len) NEED(k - start + 1);
         if (S(in)[k] != ';') return fail(p, OXP_E_SYNTAX, "a malformed character reference");
         unsigned long c = charref(S(in) + start, k + 1 - start);
@@ -1083,6 +1094,8 @@ static int pi(oxp_parser *p, input *in, int report_it)
     CHECK(read_name(p, in, &nb, &ne));
     if (ne - nb == 3 && (S(in)[nb] | 32) == 'x' && (S(in)[nb + 1] | 32) == 'm' && (S(in)[nb + 2] | 32) == 'l')
         return fail(p, OXP_E_SYNTAX, "the target 'xml' is reserved (an XML declaration must come first)");
+    if (!(p->options & OXP_OPT_NO_NAMESPACES) && memchr(S(in) + nb, ':', ne - nb))
+        return fail(p, OXP_E_NS_PREFIX, "a processing instruction's target cannot hold a colon");
     size_t db = in->pos;
     size_t sp = skip_s(in);
     if (in->pos >= in->len) NEED(in->pos - start + 2);
@@ -1156,7 +1169,11 @@ static int literal(oxp_parser *p, input *in, size_t start, size_t *b, size_t *e)
     if (q != '"' && q != '\'') return fail(p, OXP_E_SYNTAX, "a quoted string was expected");
     size_t i = in->pos + 1;
     while (i < in->len && S(in)[i] != q) i++;
-    if (i >= in->len) { if (i - in->pos > p->lim.max_text) return fail(p, OXP_E_LIMIT, "a quoted string is too long"); NEED(i - in->pos + 1); }
+    if (i >= in->len) {
+        if (in->final && !in->ent) return fail(p, OXP_E_SYNTAX, "a quoted string is not closed");
+        if (i - in->pos > p->lim.max_text) return fail(p, OXP_E_LIMIT, "a quoted string is too long");
+        NEED(i - in->pos + 1);
+    }
     *b = in->pos + 1; *e = i;
     in->pos = i + 1;
     return R_OK;
@@ -1166,8 +1183,8 @@ static int literal(oxp_parser *p, input *in, size_t start, size_t *b, size_t *e)
 static int xml_decl(oxp_parser *p, input *in)
 {
     size_t start = in->pos;
-    NEED(6);
-    if (!at(in, "<?xml") || !is_space((u8)S(in)[in->pos + 5])) {
+    WANT(6);
+    if (!at(in, "<?xml") || AV(in) < 6 || !is_space((u8)S(in)[in->pos + 5])) {
         if (!release_decl(p, NULL)) return R_ERR;
         p->state = ST_PROLOG;
         if (p->h.start_document) EVENT(p->h.start_document(p->ud, "1.0", NULL, -1));
@@ -1175,7 +1192,18 @@ static int xml_decl(oxp_parser *p, input *in)
     }
     /* the declaration is short: wait for all of it */
     size_t e = find(p, in, start, start + 5, "?>");
-    if (e == NOPOS) { if (in->len - start > 1000) return fail(p, OXP_E_SYNTAX, "an XML declaration that does not end"); NEED(in->len - start + 2); return R_MORE; }
+    if (e == NOPOS) {
+        /* while the declaration is held, the text stops at its first '>': no "?>" there means a bad declaration */
+        if ((p->hold_decl && in->len > start && S(in)[in->len - 1] == '>') || in->len - start > 1000)
+            return fail(p, OXP_E_SYNTAX, "the XML declaration must end with '?>'");
+        NEED(in->len - start + 2);
+        return R_MORE;
+    }
+    /* read it within its own bounds: a bad quote must not run past "?>" */
+    input bounded = *in;
+    bounded.len = e + 2;
+    bounded.final = 1;
+    in = &bounded;
     in->pos += 5;
     char ver[16] = "", encn[64] = "", sa[8] = "";
     int seen = 0;
@@ -1186,7 +1214,7 @@ static int xml_decl(oxp_parser *p, input *in)
         size_t nb, ne, vb, ve;
         CHECK(read_name(p, in, &nb, &ne));
         skip_s(in);
-        if (S(in)[in->pos] != '=') return fail(p, OXP_E_SYNTAX, "'=' expected in the XML declaration");
+        if (in->pos >= in->len || S(in)[in->pos] != '=') return fail(p, OXP_E_SYNTAX, "'=' expected in the XML declaration");
         in->pos++;
         skip_s(in);
         CHECK(literal(p, in, start, &vb, &ve));
@@ -1216,6 +1244,8 @@ static int xml_decl(oxp_parser *p, input *in)
         } else return fail(p, OXP_E_SYNTAX, "a bad XML declaration (version first, then encoding, then standalone)");
     }
     if (!seen) return fail(p, OXP_E_SYNTAX, "the XML declaration has no version");
+    if (in->pos != in->len) return fail(p, OXP_E_SYNTAX, "the XML declaration must end with '?>'");
+    p->din.pos = in->pos;
     p->seen_decl = 1;
     p->state = ST_PROLOG;
     if (!release_decl(p, encn[0] ? encn : NULL)) return R_ERR;
@@ -1240,7 +1270,7 @@ static int external_id(oxp_parser *p, input *in, size_t start, int notation, siz
 {
     *pb = *pe = *sb = *se = NOPOS;
     *got = 0;
-    NEED(6);
+    WANT(6);
     if (at(in, "SYSTEM")) {
         in->pos += 6;
         if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after SYSTEM"); }
@@ -1374,7 +1404,7 @@ static int decl_element(oxp_parser *p, input *in)
     if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after ELEMENT"); }
     CHECK(read_name(p, in, &b, &e));
     if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after the element name"); }
-    NEED(5);
+    WANT(5);
     if (at(in, "EMPTY")) in->pos += 5;
     else if (at(in, "ANY")) in->pos += 3;
     else if (S(in)[in->pos] == '(') CHECK(cspec(p, in, start, 0));
@@ -1405,7 +1435,7 @@ static int decl_attlist(oxp_parser *p, input *in)
         size_t nb, ne;
         CHECK(read_name(p, in, &nb, &ne));
         if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after the attribute name"); }
-        NEED(8);
+        WANT(8);
         int type = AT_TOKENIZED;
         static const char *const kw[] = { "CDATA", "IDREFS", "IDREF", "ID", "ENTITIES", "ENTITY", "NMTOKENS", "NMTOKEN", NULL };
         int k;
@@ -1434,7 +1464,7 @@ static int decl_attlist(oxp_parser *p, input *in)
             }
         } else return fail(p, OXP_E_SYNTAX, "an attribute type was expected");
         if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after the attribute type"); }
-        NEED(9);
+        WANT(9);
         int dflt = AD_DEFAULT;
         size_t vb = NOPOS, ve = NOPOS;
         if (at(in, "#REQUIRED")) { in->pos += 9; dflt = AD_REQUIRED; }
@@ -1550,7 +1580,7 @@ static int decl_entity(oxp_parser *p, input *in)
         CHECK(external_id(p, in, start, 0, &pb, &pe, &sb, &se, &got));
         if (!got) return fail(p, OXP_E_SYNTAX, "a value or SYSTEM or PUBLIC was expected");
         size_t sp = skip_s(in);
-        NEED(5);
+        WANT(5);
         if (at(in, "NDATA")) {
             if (is_pe) return fail(p, OXP_E_SYNTAX, "a parameter entity cannot be unparsed (NDATA)");
             if (!sp) return fail(p, OXP_E_SYNTAX, "a space is needed before NDATA");
@@ -1595,6 +1625,8 @@ static int decl_notation(oxp_parser *p, input *in)
     in->pos += 10;
     if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after NOTATION"); }
     CHECK(read_name(p, in, &b, &e));
+    if (!(p->options & OXP_OPT_NO_NAMESPACES) && memchr(S(in) + b, ':', e - b))
+        return fail(p, OXP_E_NS_PREFIX, "a notation name cannot hold a colon");
     if (!skip_s(in)) { NEED(1); return fail(p, OXP_E_SYNTAX, "a space is needed after the notation name"); }
     CHECK(external_id(p, in, start, 1, &pb, &pe, &sb, &se, &got));
     if (!got) return fail(p, OXP_E_SYNTAX, "SYSTEM or PUBLIC was expected");
@@ -1670,10 +1702,10 @@ static int dtd_unit(oxp_parser *p, input *in)
     if (S(in)[in->pos + 1] == '?') return pi(p, in, 0);
     NEED(4);
     if (at(in, "<!--")) return comment(p, in, 0);
-    NEED(10);
-    if (at(in, "<!ELEMENT") && is_space((u8)S(in)[in->pos + 9])) return decl_element(p, in);
-    if (at(in, "<!ATTLIST") && is_space((u8)S(in)[in->pos + 9])) return decl_attlist(p, in);
-    if (at(in, "<!ENTITY") && is_space((u8)S(in)[in->pos + 8])) return decl_entity(p, in);
+    WANT(10);
+    if (at(in, "<!ELEMENT") && AV(in) > 9 && is_space((u8)S(in)[in->pos + 9])) return decl_element(p, in);
+    if (at(in, "<!ATTLIST") && AV(in) > 9 && is_space((u8)S(in)[in->pos + 9])) return decl_attlist(p, in);
+    if (at(in, "<!ENTITY") && AV(in) > 8 && is_space((u8)S(in)[in->pos + 8])) return decl_entity(p, in);
     if (at(in, "<!NOTATION") && (in->pos + 10 >= in->len || is_space((u8)S(in)[in->pos + 10]))) { NEED(11); return decl_notation(p, in); }
     return fail(p, OXP_E_SYNTAX, "an unknown declaration in the internal subset");
 }
