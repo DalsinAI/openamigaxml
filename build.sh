@@ -1,5 +1,5 @@
 #!/bin/sh
-# openamigaxml: libxml2 and Expat, built for AmigaOS 3.x (68020 + FPU) with the
+# openamigaxml: libxml2 and Expat, built for AmigaOS 3.x (68040 + FPU) with the
 # os32-gcc16 compiler (bebbo's amiga-gcc, GCC 16.2, libnix, libpthread).
 # MIT, Copyright (c) 2026 AmigaChrome Team. The library keeps its own licence.
 #
@@ -22,7 +22,7 @@ WORK="$HERE/work"
 CC="$P/bin/m68k-amigaos-gcc"
 CXX="$P/bin/m68k-amigaos-g++"
 AR="$P/bin/m68k-amigaos-ar"
-CPU=${OS32_CPU_FLAGS:-"-m68020 -m68881 -mcrt=nix20"}
+CPU=${OS32_CPU_FLAGS:-"-m68040 -m68881 -mcrt=nix20"}
 CFLAGS="-O2 $CPU -fno-delete-null-pointer-checks -D_DEFAULT_SOURCE=1 -D_POSIX_TIMERS=1 -D_POSIX_REALTIME_SIGNALS=1 -fno-common"
 mkdir -p "$OUT/include" "$OUT/lib" "$WORK"
 
@@ -56,6 +56,8 @@ archive() {
 }
 
 TOOLCHAIN=${TOOLCHAIN_FILE:?set TOOLCHAIN_FILE to openamigabrowser/toolchain/amigaos3-gcc16.cmake}
+# the toolchain file reads its CPU flags from OS32_CPU_FLAGS: the same as ours
+export OS32_CPU_FLAGS="$CPU"
 unpack libxml2 libxml2-2.15.4.tar.xz 98087fd181d9070724f3fbc65c7377db03038eb92bd882374daff44940138821
 cd "$WORK/libxml2/libxml2-2.15.4"
 # Hunk executables have no position-independent code (-fPIC makes GOT
